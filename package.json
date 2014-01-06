@@ -1,0 +1,17 @@
+{
+  "author": "Oliver Rumbelow <oliver.rumbelow@holidayextras.com> (http://www.holidayextras.co.uk/)",
+  "name": "hxTracer",
+  "description": "A high level javascript tracer with no dependencies.",
+  "keywords": [
+    "tracer",
+    "performance",
+    "timing"
+  ],
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/holidayextras/hxTracer"
+  },
+  "main": "./index.js",
+  "license": "GPL"
+}
