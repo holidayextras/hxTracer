@@ -1,6 +1,6 @@
 {
   "author": "Oliver Rumbelow <oliver.rumbelow@holidayextras.com> (http://www.holidayextras.co.uk/)",
-  "name": "hxTracer",
+  "name": "hxtracer",
   "description": "A high level javascript tracer with no dependencies.",
   "keywords": [
     "tracer",
