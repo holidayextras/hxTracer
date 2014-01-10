@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Hxtracer : A dependency-free Javascript Tracer" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Hxtracer</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/holidayextras/hxTracer">View on GitHub</a>
+
+          <h1 id="project_title">Hxtracer</h1>
+          <h2 id="project_tagline">A dependency-free Javascript Tracer</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/holidayextras/hxTracer/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/holidayextras/hxTracer/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h2>
+<a name="introduction" class="anchor" href="#introduction"><span class="octicon octicon-link"></span></a>Introduction</h2>
+
+<hr><p>I wrote this javascript tracer to gain a better insight into how a project worked. Hopefully it'll help others too. Keep reading for an explanation on how it works.</p>
+
+<h2>
+<a name="how-do-i-use-it" class="anchor" href="#how-do-i-use-it"><span class="octicon octicon-link"></span></a>How do I use it?</h2>
+
+<hr><p>Simply require this module somewhere:</p>
+
+<pre><code>var hxTracer = require('hxtracer');
+</code></pre>
+
+<p>Or, include it on a webpage.</p>
+
+<p>The tracer starts off disabled, when you get near a code path you want to trace:</p>
+
+<pre><code>hxTracer.start();
+</code></pre>
+
+<p>then when finished:</p>
+
+<pre><code>hxTracer.stop();
+</code></pre>
+
+<p>eg:</p>
+
+<pre><code>hxTracer.start();
+cache.storeObject('test', { key: 'foobar' }, function(err) {
+    hxTracer.stop();
+});
+</code></pre>
+
+<p>Or, the tracer can be toggled on/off by sending the process a PIPE signal:</p>
+
+<pre><code>/repos/redis-benchmark:ps aux | grep node
+username    14116 15.5  0.1 662156 21992 pts/0    Sl+  22:27   0:00 node test.js
+/repos/redis-benchmark:kill -PIPE 14116
+</code></pre>
+
+<p>When your project runs into the tracer it will spit tracing info out to <code>stderr</code> like this:</p>
+
+<pre><code>TRACER OVERHEAD 0.13ms per timing
+...
+TRACER FNI 4398.08ms 6440456  /repos/redis-benchmark/Cache.js.prototype.findObject
+TRACER FNI 4398.14ms 6440456    /repos/redis-benchmark/Cache.js.prototype.generateCacheKey
+TRACER FNR 4398.19ms 6440456    /repos/redis-benchmark/Cache.js.prototype.generateCacheKey
+TRACER FNI 4398.25ms 6440456    /repos/redis-benchmark/Cache.js.prototype.get
+TRACER FNR 4398.29ms 6440456    /repos/redis-benchmark/Cache.js.prototype.get
+TRACER FNR 4398.33ms 6440456  /repos/redis-benchmark/Cache.js.prototype.findObject
+...
+TRACER EV LAG 59ms
+...
+TRACER FNI 4403.47ms 6440456  /repos/redis-benchmark/Cache.js.prototype._processGetQueue
+TRACER FNI 4404.02ms 6440456    /repos/redis-benchmark/Cache.js.prototype.mget
+TRACER FNI 4404.12ms 6440456      /repos/redis-benchmark/RedisClient.js.prototype.mget
+TRACER FNI 4404.28ms 6440456        /repos/redis-benchmark/RedisClient.js.prototype._isClientConnected
+TRACER FNR 4404.35ms 6440456        /repos/redis-benchmark/RedisClient.js.prototype._isClientConnected
+TRACER FNR 4404.60ms 6440456      /repos/redis-benchmark/RedisClient.js.prototype.mget
+TRACER FNR 4404.64ms 6440456    /repos/redis-benchmark/Cache.js.prototype.mget
+TRACER FNR 4404.70ms 6440456  /repos/redis-benchmark/Cache.js.prototype._processGetQueue
+...
+[Test finished in 203ms]
+TRACER CBR 4775.91ms 6440456  /repos/redis-benchmark/node_modules/async/lib/async.js.parallel
+TRACER CBR 4776.05ms 6442576    /repos/redis-benchmark/node_modules/async/lib/async.js.map
+TRACER CBR 4776.16ms 6444720      /repos/redis-benchmark/node_modules/async/lib/async.js.each
+TRACER CBR 4776.26ms 6446872        /repos/redis-benchmark/Cache.js.prototype.findObject
+TRACER CBR 4776.36ms 6449016          /repos/redis-benchmark/Cache.js.prototype.get
+TRACER EV LAG 71ms
+TRACER TOTAL OVERHEAD 7.27ms
+TRACER TOTAL 202.02ms 202.33ms 202.02ms 1 /repos/redis-benchmark/node_modules/async/lib/async.js.parallel
+TRACER TOTAL 200.73ms 201.29ms 200.73ms 1 /repos/redis-benchmark/node_modules/async/lib/async.js.map
+TRACER TOTAL 199.87ms 200.74ms 199.87ms 1 /repos/redis-benchmark/node_modules/async/lib/async.js.each
+TRACER TOTAL 31.30ms 106.57ms 183.26ms 100 /repos/redis-benchmark/Cache.js.prototype.findObject
+TRACER TOTAL 30.69ms 106.31ms 182.95ms 100 /repos/redis-benchmark/Cache.js.prototype.get
+TRACER TOTAL 3.53ms 3.68ms 3.53ms 1 /repos/redis-benchmark/Cache.js.prototype.mget
+TRACER TOTAL 3.20ms 3.51ms 3.20ms 1 /repos/redis-benchmark/RedisClient.js.prototype.mget
+TRACER TOTAL 2.56ms 2.56ms 2.56ms 1 /repos/redis-benchmark/Cache.js.prototype._processGetQueue
+TRACER TOTAL 0.04ms 0.37ms 27.89ms 100 /repos/redis-benchmark/Cache.js.prototype.generateCacheKey
+TRACER TOTAL 0.20ms 0.20ms 0.20ms 1 /repos/redis-benchmark/RedisClient.js.prototype._isClientConnected
+</code></pre>
+
+<p>Where:
+<code>FNI</code> is <code>Function Invoked</code>, <code>FNR</code> is <code>Function Returned</code>, <code>CBI</code> is <code>Callback Invoked</code>, <code>CBR</code> is <code>Callback Returned</code>.
+The columns provided by <code>TRACER TOTAL</code> are: <code>min duration</code>, <code>average duration</code>, <code>max duration</code>, <code>call count</code>, <code>file</code>.</p>
+
+<p>If you want the tracer to stop at extra places, you can:</p>
+
+<pre><code>hxTracer.log('Cache Callback');
+</code></pre>
+
+<h2>
+<a name="tracing-a-nodejs-project" class="anchor" href="#tracing-a-nodejs-project"><span class="octicon octicon-link"></span></a>Tracing a Node.js project</h2>
+
+<hr><h3>
+<a name="setting-the-scene" class="anchor" href="#setting-the-scene"><span class="octicon octicon-link"></span></a>Setting the Scene</h3>
+
+<p>Here's some code I'd like to trace, annotated with a few points which are, or might be, interesting.</p>
+
+<pre><code>var async = require('async');
+var library = require('lib/library');
+
+// Point A
+async.map(listOfCodes, function(code, callback) {
+  // Point B
+  library.findObjectsByCode(code, function(err, results) {
+    // Point C
+    if (err) return callback(null, [ ]);
+    return callback(null, results); // Point D
+  });
+  return; // Point E
+}, function(err, results) {
+  // Point F
+  results = results || [ ];
+  console.log(Array.prototype.concat.apply([ ], results);
+  return; // Point G
+});
+return; // Point H
+</code></pre>
+
+<p>When tracing this, I would like to know what code paths are being followed, the order in which they are being executed, how long it is taking to get between the various code points annotated above, and how much time in total is being spent in various functions.</p>
+
+<h3>
+<a name="examining-the-module-module" class="anchor" href="#examining-the-module-module"><span class="octicon octicon-link"></span></a>Examining the 'module' module.</h3>
+
+<p>This is a trimmed down version of the structure of a <code>module</code> object:</p>
+
+<pre><code>&gt; console.log(module);
+{ exports: { ... },
+  parent: { ..reference to the module that referenced this module.. },
+  children: [ { ..reference to modules required by this one.. } ] }
+</code></pre>
+
+<p>The exports property contains a reference to the cached <code>module.exports</code> for the given module.</p>
+
+<p>Apart from the starting module, whose <code>parent</code> will be <code>undefined</code>, the <code>parent</code> and <code>children</code> properties form circular references:</p>
+
+<pre><code>&gt; [ some module ].parent.children.indexOf([ some module ]) &gt;= 0
+true
+&gt; console.log(JSON.stringify(module, null, 2))
+TypeError: Converting circular structure to JSON
+</code></pre>
+
+<p>This is both awesome and terrible at the same time - it means that any included module in a given project can obtain the references to every loaded module in the entire project. It also means that any module can alter the exports or behaviour of any other module in the project:</p>
+
+<pre><code>var async = require('async);
+module.parent.children[0].exports.foo = 'bar';
+console.log(async.foo);
+</code></pre>
+
+<p>So how can we abuse this power to trace an entire project?</p>
+
+<h3>
+<a name="scoping-out-a-project" class="anchor" href="#scoping-out-a-project"><span class="octicon octicon-link"></span></a>Scoping out a project</h3>
+
+<p>First we need to start by locating the core module that spawned the whole project. From anywhere, grab the 'global' (well, within scope of each file) <code>module</code> object and traverse to the top of the tree:</p>
+
+<pre><code>var parentModule = module;
+while (parentModule.parent) parentModule = parentModule.parent;
+</code></pre>
+
+<p>Then we've just got to work our way back down the tree obtaining references to every modules exports. In this example, every module's exports get run through a <code>bootstrap</code> function:</p>
+
+<pre><code>function processModules(item) {
+  if (item.exports &amp;&amp; !item._traced) {
+    bootstrap(item, 'exports', item.filename);
+    item._traced = true;
+  }
+  if (item.children) {
+    item.children.map(processModules);
+  }
+}
+processModules(parentModule);
+</code></pre>
+
+<p>As it stands, this will bootstrap every function in every module - tracing our 3rd party modules at a high level can be great, digging deeper into them is just going to create a lot of noise and make it harder to focus on our own code. We can limit the coverage to something a bit more sensible:</p>
+
+<pre><code>if ( ((path.indexOf('node_modules') !== -1) &amp;&amp; (path.split('node_modules')[1].split('/').length &gt; 3)) ||
+     (path.split('.').length &gt; 5) ) return;
+</code></pre>
+
+<h3>
+<a name="infecting-enough-code-for-a-basic-trace" class="anchor" href="#infecting-enough-code-for-a-basic-trace"><span class="octicon octicon-link"></span></a>Infecting enough code for a basic trace</h3>
+
+<p>So first up is attacking the exported objects - the most common exports patterns that I'm interested in are these two:</p>
+
+<pre><code>function SomeClass();
+module.exports = SomeClass;
+SomeClass.prototype.foo = function() { .... };
+</code></pre>
+
+<p>and</p>
+
+<pre><code>module.exports = {
+  foo = function() { .... }
+};
+</code></pre>
+
+<p>So we've simply going to traverse every modules exports - if the value is a <code>Function</code> then we're going to go after both it, it's prototype and any static properties attached to it. We're then going to iterate over every property on the value, looking for other <code>Function</code> references or objects and repeat the process:</p>
+
+<pre><code>function bootstrap(item, path) {
+  var original = item[prop];
+  if (item[prop] instanceof Function) {
+    // Infect the actual function
+    infect(item, prop, path);
+    // Infect the functions prototype
+    if (item[prop].prototype) {
+      bootstrap(item[prop], 'prototype', path+'.prototype');
+    }
+    // Clone the static properties on the original function
+    for (var i in original) {
+      item[prop][i] = original[i];
+    }
+  }
+  if (item[prop] instanceof Object) {
+    // Bootstrap any other properties
+    for (var i in item[prop]) {
+      bootstrap(item[prop], i, path+'.'+i);
+    }
+  }
+  return item;
+}
+</code></pre>
+
+<p>Now we want to alter every one of these functions so that we can work out what order events are occuring, and how long it is taking to get between different code points. All we've got to do is record the original function reference then replace it with one of our own which does some tracing and calls on to the original. This is the basic format I've gone with:</p>
+
+<pre><code>function infect(item, i, path) {
+  var original = item[i];
+  item[i] = function() {
+    return (function() {
+      // ... trace stuff
+      // ... invoke the original function, passing the correct scope
+      // ... trace some more
+      // ... return the result
+    }).apply(this, Array.prototype.slice.call(arguments));
+  };
+
+  // Make sure we don't lose any prototypes!
+  item[i].prototype = original.prototype;
+}
+</code></pre>
+
+<p>This is cool, we're now tracing a bunch of functions across our project, but it's not covering some of the more interesting parts like anonymous functions or functions that are passed around to other modules.</p>
+
+<h3>
+<a name="tracing-the-anonymous-functions" class="anchor" href="#tracing-the-anonymous-functions"><span class="octicon octicon-link"></span></a>Tracing the anonymous functions</h3>
+
+<p>The trick here is not to think too hard about how to get these in scope. Most of the anonymous functions we're going to be interested in are passed into the functions we've already traced, so tweaking them is remarkably simple. This example is an extension of the previous one:</p>
+
+<pre><code>function infect(item, i, path) {
+  var original = item[i];
+  item[i] = function() {
+    return (function() {
+      var functionArgs = Array.prototype.slice.call(arguments);
+      functionArgs = functionArgs.map(function(arg) {
+        if (!(arg instanceof Function)) return arg;
+        return function() {
+          // ... trace stuff
+          // ... invoke the original function, passing the correct scope
+          // ... trace some more
+          // ... return the result
+        };
+      });
+
+      // ... trace stuff
+      // ... invoke the original function, passing the correct scope
+      // ... trace some more
+      // ... return the result
+    }).apply(this, Array.prototype.slice.call(arguments));
+  };
+
+  // Make sure we don't lose any prototypes!
+  item[i].prototype = original.prototype;
+}
+</code></pre>
+
+<p>The idea is simple - whenever a traced function is invoked, if it's passed a function then we change it for a new one which does our tracing and continues on to where it was meant to go. Wonderful.</p>
+
+<h3>
+<a name="allowing-dependency-injection" class="anchor" href="#allowing-dependency-injection"><span class="octicon octicon-link"></span></a>Allowing Dependency Injection</h3>
+
+<p>Some modules like to stringify functions to see how many parameters have been named, then altering how those functions are invoked accordingly. If we want this to continue working with our tracer we need to go a bit further and tweak our new functions parameters to match those of the original:</p>
+
+<pre><code>var dependencies = original.toString().match(/^function .*?\((.*?)\)/);
+if (dependencies) {
+  var newFunc = item[i].toString();
+  newFunc = '(function() { return '+newFunc.replace('function ()', 'function ('+dependencies[1]+')')+ '; })()';
+  item[i] = eval(newFunc);
+}
+</code></pre>
+
+<p>This part is less than pleasant, but it gets the job done.</p>
+
+<h3>
+<a name="measuring-time" class="anchor" href="#measuring-time"><span class="octicon octicon-link"></span></a>Measuring Time</h3>
+
+<p>We are going to need sub-millisecond accuracy when measuring how long it takes to get from A to B. Node provides this:</p>
+
+<pre><code>&gt; process.hrtime();
+[ 99343, 41943674 ]
+</code></pre>
+
+<p>Those two numbers are <code>seconds</code> then <code>nanoseconds</code> and are described in the documentation as <code>It is relative to an arbitrary time in the past. It is not related to the time of day and therefore not subject to clock drift. The primary use is for measuring performance between intervals.</code>. We're going to combine these numbers, move the decimal place to milliseconds, round off the nanoseconds and reduce the number down to something easier to read: <code>1234.56ms</code></p>
+
+<pre><code>function meaningfulTime() {
+  var parts = process.hrtime();
+  return (((parts[0]*1000)+(parts[1]/1000000))%10000).toFixed(2) + 'ms';
+}
+</code></pre>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Hxtracer maintained by <a href="https://github.com/holidayextras">holidayextras</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-46962272-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+
+  </body>
+</html>
