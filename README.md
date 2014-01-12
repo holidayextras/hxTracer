@@ -8,7 +8,7 @@ I wrote this javascript tracer to gain a better insight into how a project worke
 
 Simply require this module somewhere:
 ```
-var hxTracer = require('hxTracer');
+var hxTracer = require('hxtracer');
 ```
 Or, include it on a webpage.
 
