@@ -74,14 +74,14 @@ function processModules(item) {
   }
 }
 
+var allFuncs = [ ];
 // Bootstrap recursively iterates through an item, infecting every Function
 function bootstrap(item, prop, path) {
-  if ( ((path.indexOf('node_modules') !== -1) && (path.split('node_modules')[1].split('/').length > 3)) ||
-       (path.split('node_modules').length > 2) ||
-       (path.split('.').length > 6) ||
-       (path.slice(-4) == 'emit') ) return;
+  if ( (path.split('node_modules').length > 2) || (path.slice(-4) == 'emit') ) return;
   if (!item.hasOwnProperty(prop) || Object.getOwnPropertyDescriptor(item, prop).get) return;
   var original = item[prop];
+  if (allFuncs.indexOf(original) !== -1) return;
+  allFuncs.push(original);
   if (item[prop] instanceof Function) {
     infect(item, prop, path);
     if (item[prop].prototype) {
@@ -208,6 +208,8 @@ function infect(item, i, modulePath) {
 
   // Tag the new function so we don't trace it twice
   item[i].__infected = true;
+
+  allFuncs.push(item[i]);
 }
 
 // The timestamps we get are artificilly limited to 10 seconds.
