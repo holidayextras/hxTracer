@@ -16,7 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with hxTracer.  If not, see <http://www.gnu.org/licenses/>.
 *******************************************************************/
-( function() { 
+( function() {
 
 var space = "                                                                                                                  ";
 var currentIndentation = 0;
@@ -77,7 +77,7 @@ function processModules(item) {
 var allFuncs = [ ];
 // Bootstrap recursively iterates through an item, infecting every Function
 function bootstrap(item, prop, path) {
-  if ( (path.split('node_modules').length > 2) || (path.slice(-4) == 'emit') ) return;
+  if ( (path.split('node_modules').length > 2) || (path.slice(-4) == 'emit') || (item == require('util') && (prop=='format')) ) return;
   if (!item.hasOwnProperty(prop) || Object.getOwnPropertyDescriptor(item, prop).get) return;
   var original = item[prop];
   if (allFuncs.indexOf(original) !== -1) return;
@@ -252,7 +252,7 @@ function processLogs() {
 
   while (Object.keys(stats).length > 0) {
     var biggest = 0;
-    var biggestmodulePath = Object.keys(stats)[0];
+    var biggestPath = Object.keys(stats)[0];
     for (var path in stats) {
       if (stats[path].average >= biggest) {
         biggestPath = path;
