@@ -109,6 +109,7 @@ function bootstrap(item, prop, path) {
 function infect(item, i, modulePath) {
   var original = item[i];
   if (original.__infected) return;
+  stats[modulePath] = stats[modulePath] || { totalTime: 0, count: 0, min: 99999, max: 0, average: 0, calcs: 1, calledFrom: [] };
   item[i] = function() {
     return (function() {
       var functionArgs = Array.prototype.slice.call(arguments);
@@ -116,7 +117,14 @@ function infect(item, i, modulePath) {
       if (!active) return original.apply(this, functionArgs);
 
       // Start gathering stats for when the tracing is stopped
-      stats[modulePath] = stats[modulePath] || { totalTime: 0, count: 0, min: 99999, max: 0, calcs: 1 };
+      var calledFrom = (new Error()).stack.split('\n');
+      if (calledFrom.length > 3) {
+        calledFrom = calledFrom[3].match(/.*\((.*?)\)/)[1];
+        if ((stats[modulePath].calledFrom.indexOf(calledFrom) === -1) &&
+            (calledFrom.indexOf('events.js:') !== 0)) {
+          stats[modulePath].calledFrom.push(calledFrom);
+        }
+      }
       stats[modulePath].count++;
 
       // These are the timings we're interested in
@@ -201,6 +209,7 @@ function infect(item, i, modulePath) {
   // This bit examines the params required by the original function and copies them into our new function.
   // It's used to allow dependency injection or Function.toString() to work
   try {
+    stats[modulePath].code = original.toString();
     var dependencies = original.toString().match(/^function .*?\((.*?)\)/);
     if (dependencies) {
       var newFunc = item[i].toString();
@@ -239,13 +248,15 @@ function processLogs() {
   var output = [ ];
 
   for (var path in stats) {
-    output.push([ 
-      stats[path].min.toFixed(2)+'ms',
-      stats[path].average.toFixed(2)+'ms',
-      stats[path].max.toFixed(2)+'ms',
-      ''+stats[path].count,
-      path
-    ]);
+    if (stats[path].count > 0) {
+      output.push([ 
+        stats[path].min.toFixed(2)+'ms',
+        stats[path].average.toFixed(2)+'ms',
+        stats[path].max.toFixed(2)+'ms',
+        ''+stats[path].count,
+        path
+      ]);
+    }
   }
 
   return output;
@@ -288,6 +299,10 @@ io.sockets.on('connection', function (socket) {
 
   socket.on('stopTracer', function () {
     stopTracer();
+  });
+
+  socket.on('detailRequest', function(modulePath) {
+    socket.emit('detailResponse', stats[modulePath]);
   });
 
   var dataInterval = setInterval(function() {

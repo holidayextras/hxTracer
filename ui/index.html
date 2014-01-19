@@ -10,13 +10,14 @@
         lines.sort(function(a, b) {
           return b[3] - a[3];
         });
-        for (var i=0; i<lines.length; i++) {
+        lines.forEach(function(line) {
           var newEntry = document.createElement('tr');
-          newEntry.innerHTML = '<td>'+lines[i].map(function(str) {
+          newEntry.addEventListener('click', function() { requestDetailsFor(line[4]); });
+          newEntry.innerHTML = '<td>'+line.map(function(str) {
             return str.replace(/ /g, '&nbsp;&nbsp;');
           }).join('</td><td>') + '</td>';
           panel.appendChild(newEntry);
-        }
+        });
       });
 
       socket.on('runningOutput', function (lines) {
@@ -29,6 +30,25 @@
           panel.appendChild(newEntry);
         }
       });
+
+      socket.on('detailResponse', function(details) {
+        var panel = document.querySelectorAll('#overallStats > div')[1];
+        panel.innerHTML = '';
+        details.calledFrom.forEach(function(path) {
+          var newPath = document.createElement('div');
+          newPath.innerHTML = path;
+          panel.appendChild(newPath);
+        });
+        details.code.split('\n').forEach(function(line) {
+          var newLine = document.createElement('div');
+          newLine.innerHTML = '<pre><code>'+line+'</code></pre>';
+          panel.appendChild(newLine);
+        });
+      });
+
+      function requestDetailsFor(modulePath) {
+        socket.emit('detailRequest', modulePath);
+      }
 
       function startTracer() {
         socket.emit('startTracer');
@@ -65,13 +85,13 @@
         border-bottom: 1px solid #333333;
       }
 
-      #overallStats {
-        background: coral;
+      #overallStats > div {
+        width: 50%;
+        float: left;
+        overflow: scroll;
+        height: 100%;
       }
 
-      #runningOutput {
-        background: lime;
-      }
     </style>
   </head>
   <body>
@@ -81,17 +101,23 @@
 
     </div>
     <div id='overallStats'>
-      <table >
-        <tr>
-          <th>Min</th>
-          <th>Avg</th>
-          <th>Max</th>
-          <th>Count</th>
-          <th>Location</th>
-        </tr>
-        <tbody id='statsGoHere'></tbody>
-      </table>
+      <div>
+        <table >
+          <tr>
+            <th>Min</th>
+            <th>Avg</th>
+            <th>Max</th>
+            <th>Count</th>
+            <th>Location</th>
+          </tr>
+          <tbody id='statsGoHere'></tbody>
+        </table>
+      </div>
+      <div >
+
+      </div>
     </div>
+    <br />
     <div id='runningOutput'>
       <table >
         <tr>
