@@ -16,7 +16,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with hxTracer.  If not, see <http://www.gnu.org/licenses/>.
 *******************************************************************/
-( function() {
 
 var space = "                                                                                                                  ";
 var currentIndentation = 0;
@@ -31,10 +30,8 @@ var stats = { };
 var active = false;
 
 // Establish the core module for the project
-var moduleRef = (typeof module != 'undefined') ? module : null;
-var global = global || { };
-var parentModule = moduleRef || { };
-var processRef = (typeof process != 'undefined') ? process : { memoryUsage: function() { return { heapUsed: '' } } };
+var processRef = process;
+var parentModule = module;
 while (parentModule.parent) parentModule = parentModule.parent;
 
 // tooBusy attempts to measure event loop lag
@@ -233,12 +230,8 @@ function timeDiff(newest, oldest) {
 
 // Get a sub-millisecond timing thats actually readable
 function meaningfulTime() {
-  if (moduleRef) {
-    var parts = processRef.hrtime();
-    return (((parts[0]*1000)+(parts[1]/1000000))%10000).toFixed(2) + 'ms';
-  } else {
-    return performance.now().toFixed(2)+'ms';
-  }
+  var parts = processRef.hrtime();
+  return (((parts[0]*1000)+(parts[1]/1000000))%10000).toFixed(2) + 'ms';
 }
 
 // Process our logs after tracing to work out how much time is spent where
@@ -246,11 +239,13 @@ function processLogs() {
   var output = [ ];
 
   for (var path in stats) {
-    output.push( [ stats[path].min.toFixed(2)+'ms',
-                   stats[path].average.toFixed(2)+'ms',
-                   stats[path].max.toFixed(2)+'ms',
-                   ''+stats[path].count,
-                   path ] );
+    output.push([ 
+      stats[path].min.toFixed(2)+'ms',
+      stats[path].average.toFixed(2)+'ms',
+      stats[path].max.toFixed(2)+'ms',
+      ''+stats[path].count,
+      path
+    ]);
   }
 
   return output;
@@ -258,22 +253,13 @@ function processLogs() {
 
 // Start the tracer :)
 function startTracer() {
-  if (!moduleRef) {
-    for (var i in window) {
-      if ([ 'top', 'document', 'window', 'worker', 'parent', 'frames', 'self', 'performance', 'navigator' ].indexOf(i) === -1) {
-        processModules({ exports: window[i], filename: i })
-      }
-    }
-  } else {
-    processModules(parentModule);
-  }
+  processModules(parentModule);
   active = true;
 }
 
 // Stop the tracer :(
 function stopTracer() {
   active = false;
-  processLogs();
 }
 
 // Start up a server
@@ -315,5 +301,3 @@ io.sockets.on('connection', function (socket) {
   });
 
 });
-
-})();
