@@ -20,6 +20,13 @@ along with hxTracer.  If not, see <http://www.gnu.org/licenses/>.
 
 var space = "                                                                                                                  ";
 var currentIndentation = 0;
+var timeline = [ ];
+function addToTimeline() {
+  var args = Array.prototype.slice.call(arguments).map(function(str) {
+    return ''+str;
+  });
+  timeline.push(args);
+}
 var stats = { };
 var active = false;
 
@@ -36,7 +43,7 @@ function startTooBusy() {
   var lastInterval = [ new Date() ];
   var tooBusy = setInterval(function() {
     lastInterval.push(new Date());
-    console.error("TRACER EV LAG", ((lastInterval[1] - lastInterval[0])-5)+'ms');
+    addToTimeline("EV LAG", ((lastInterval[1] - lastInterval[0])-5)+'ms');
     lastInterval.shift();
   }, 5);
 }
@@ -50,7 +57,7 @@ if (global.gc) {
   global.gc = function() {
     var startTime = meaningfulTime();
     gc();
-    console.error('TRACER GARBAGE', (parseFloat(meaningfulTime()) - parseFloat(startTime)).toFixed(2)+'ms');
+    addToTimeline('GARBAGE', (parseFloat(meaningfulTime()) - parseFloat(startTime)).toFixed(2)+'ms');
   };
 }
 
@@ -58,7 +65,7 @@ if (global.gc) {
 function timeAndLog(text) {
   if (active) {
     var spaces = space.substring(0, currentIndentation);
-    console.error('TRACER TXT', meaningfulTime(), spaces, text);
+    addToTimeline('TXT', meaningfulTime(), spaces, text);
   }
 }
 
@@ -132,10 +139,10 @@ function infect(item, i, modulePath) {
         // This covers functions passed in which are NOT the last argument
         if (functionArgs.indexOf(arg) != (functionArgs.length-1)) return function() {
           currentIndentation = indentationWhenInvoked;
-          console.error('TRACER CBI', meaningfulTime(), processRef.memoryUsage().heapUsed, spaces, modulePath+index);
+          addToTimeline('CBI', meaningfulTime(), processRef.memoryUsage().heapUsed, spaces + modulePath+index);
           var out = arg.apply(this, Array.prototype.slice.call(arguments));
           if (!active) return;
-          console.error('TRACER CBR', meaningfulTime(), processRef.memoryUsage().heapUsed, spaces, modulePath+index);
+          addToTimeline('CBR', meaningfulTime(), processRef.memoryUsage().heapUsed, spaces + modulePath+index);
           stats[modulePath].calcs += 2;
           return out;
         };
@@ -145,13 +152,13 @@ function infect(item, i, modulePath) {
           currentIndentation = indentationWhenInvoked;
 
           callbackInvokedAt = meaningfulTime();
-          console.error('TRACER CBI', callbackInvokedAt, processRef.memoryUsage().heapUsed, spaces, modulePath+index);
+          addToTimeline('CBI', callbackInvokedAt, processRef.memoryUsage().heapUsed, spaces + modulePath+index);
 
           var out = arg.apply(this, Array.prototype.slice.call(arguments));
           if (!active) return;
 
           callbackReturnedAt = meaningfulTime();
-          console.error('TRACER CBR', callbackReturnedAt, processRef.memoryUsage().heapUsed, spaces, modulePath+index);
+          addToTimeline('CBR', callbackReturnedAt, processRef.memoryUsage().heapUsed, spaces + modulePath+index);
 
           var callbackDuration = timeDiff(callbackReturnedAt, callbackInvokedAt);
           if (functionReturnedAt) {
@@ -159,6 +166,7 @@ function infect(item, i, modulePath) {
             stats[modulePath].totalTime += callbackDuration;
           }
           stats[modulePath].calcs += 2;
+          stats[modulePath].average = stats[modulePath].totalTime / stats[modulePath].count;
 
           var totalDuration = timeDiff(callbackReturnedAt, functionInvokedAt);
           if (totalDuration > stats[modulePath].max) stats[modulePath].max = totalDuration;
@@ -168,7 +176,7 @@ function infect(item, i, modulePath) {
         };
       });
 
-      console.error('TRACER FNI', functionInvokedAt, processRef.memoryUsage().heapUsed, spaces, modulePath);
+      addToTimeline('FNI', functionInvokedAt, processRef.memoryUsage().heapUsed, spaces + modulePath);
 
       currentIndentation += 2;
       var out = original.apply(this, functionArgs);
@@ -176,7 +184,7 @@ function infect(item, i, modulePath) {
       currentIndentation -= 2;
 
       functionReturnedAt = meaningfulTime();
-      console.error('TRACER FNR', functionReturnedAt, processRef.memoryUsage().heapUsed, spaces, modulePath);
+      addToTimeline('FNR', functionReturnedAt, processRef.memoryUsage().heapUsed, spaces + modulePath);
 
       // Guess how long it took
       var functionDuration = timeDiff(functionReturnedAt, functionInvokedAt);
@@ -186,6 +194,7 @@ function infect(item, i, modulePath) {
       if (!isAsync) {
         if (functionDuration < stats[modulePath].min) stats[modulePath].min = functionDuration;
       }
+      stats[modulePath].average = stats[modulePath].totalTime / stats[modulePath].count;
 
       // Our new function still returns the value of the original
       return out;
@@ -194,14 +203,14 @@ function infect(item, i, modulePath) {
 
   // This bit examines the params required by the original function and copies them into our new function.
   // It's used to allow dependency injection or Function.toString() to work
-  var dependencies = original.toString().match(/^function .*?\((.*?)\)/);
-  if (dependencies) {
-    var newFunc = item[i].toString();
-    newFunc = '(function() { return '+newFunc.replace('function ()', 'function ('+dependencies[1]+')')+ '; })()';
-    try {
+  try {
+    var dependencies = original.toString().match(/^function .*?\((.*?)\)/);
+    if (dependencies) {
+      var newFunc = item[i].toString();
+      newFunc = '(function() { return '+newFunc.replace('function ()', 'function ('+dependencies[1]+')')+ '; })()';
       item[i] = eval(newFunc);
-    } catch(e) { }
-  }
+    }
+  } catch(e) { }
 
   // Make sure we don't lose any prototypes!
   item[i].prototype = original.prototype;
@@ -232,41 +241,19 @@ function meaningfulTime() {
   }
 }
 
-// How much time does it take to measure time?
-function measureTracerOverhead() {
-  var time1 = meaningfulTime();
-  var time2 = meaningfulTime();
-  console.error("TRACER OVERHEAD", timeDiff(time2, time1).toFixed(2)+'ms', 'per timing');
-}
-
 // Process our logs after tracing to work out how much time is spent where
 function processLogs() {
-  var calcs = 0;
-  for (var i in stats) {
-    stats[i].average = stats[i].totalTime / stats[i].count;
-    calcs += stats[i].calcs;
-  }
-  var time1 = meaningfulTime();
-  var time2 = meaningfulTime();
-  console.error("TRACER TOTAL OVERHEAD", (calcs*timeDiff(time2, time1)).toFixed(2)+'ms');
+  var output = [ ];
 
-  while (Object.keys(stats).length > 0) {
-    var biggest = 0;
-    var biggestPath = Object.keys(stats)[0];
-    for (var path in stats) {
-      if (stats[path].average >= biggest) {
-        biggestPath = path;
-        biggest = stats[path].average;
-      }
-    }
-    console.error("TRACER TOTAL",
-                  stats[biggestPath].min.toFixed(2)+'ms',
-                  stats[biggestPath].average.toFixed(2)+'ms',
-                  stats[biggestPath].max.toFixed(2)+'ms',
-                  stats[biggestPath].count,
-                  biggestPath);
-    delete stats[biggestPath];
+  for (var path in stats) {
+    output.push( [ stats[path].min.toFixed(2)+'ms',
+                   stats[path].average.toFixed(2)+'ms',
+                   stats[path].max.toFixed(2)+'ms',
+                   ''+stats[path].count,
+                   path ] );
   }
+
+  return output;
 }
 
 // Start the tracer :)
@@ -281,7 +268,6 @@ function startTracer() {
     processModules(parentModule);
   }
   active = true;
-  measureTracerOverhead();
 }
 
 // Stop the tracer :(
@@ -290,33 +276,44 @@ function stopTracer() {
   processLogs();
 }
 
-// Allow us to turn the tracer on/off at diferent times
-if (moduleRef) {
-  processRef.on('SIGPIPE', function() {
-    if (!active) {
-      startTracer();
-    } else {
-      stopTracer();
-    }
-  });
-}
+// Start up a server
+var express = require('express');
+var app = express();
+    app.use(express.static(__dirname+'/ui'));
+var server = require('http').createServer(app);
+    server.listen(16006);
+var io = require('socket.io').listen(server, { log: false });
+io.set('transports', [
+  'websocket',
+  'htmlfile',
+  'xhr-polling',
+  'jsonp-polling'
+]);
+io.enable('browser client minification');
+io.enable('browser client etag');
+io.enable('browser client gzip');
+console.error('hxTracer is alive on port 16006');
 
-if (moduleRef) {
-  module.exports = {
-    start: startTracer,
-    stop: stopTracer,
-    startTooBusy: startTooBusy,
-    stopTooBusy: stopTooBusy,
-    log: timeAndLog
-  };
-} else {
-  window.hxTracer = {
-    start: startTracer,
-    stop: stopTracer,
-    startTooBusy: startTooBusy,
-    stopTooBusy: stopTooBusy,
-    log: timeAndLog
-  }
-}
+io.sockets.on('connection', function (socket) {
+
+  socket.on('startTracer', function () {
+    startTracer();
+  });
+
+  socket.on('stopTracer', function () {
+    stopTracer();
+  });
+
+  var dataInterval = setInterval(function() {
+    var dataToSend = timeline;
+    timeline = [ ];
+    socket.emit('runningOutput', dataToSend);
+    socket.emit('overallStats', processLogs());
+  }, 500);
+  socket.on('disconnect', function () {
+    clearInterval(dataInterval);
+  });
+
+});
 
 })();

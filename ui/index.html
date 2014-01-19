@@ -1,0 +1,108 @@
+<html>
+  <head>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      var socket = io.connect('http://localhost:16006');
+
+      socket.on('overallStats', function (lines) {
+        var panel = document.querySelectorAll('#statsGoHere')[0];
+        panel.innerHTML = '';
+        lines.sort(function(a, b) {
+          return b[3] - a[3];
+        });
+        for (var i=0; i<lines.length; i++) {
+          var newEntry = document.createElement('tr');
+          newEntry.innerHTML = '<td>'+lines[i].map(function(str) {
+            return str.replace(/ /g, '&nbsp;&nbsp;');
+          }).join('</td><td>') + '</td>';
+          panel.appendChild(newEntry);
+        }
+      });
+
+      socket.on('runningOutput', function (lines) {
+        var panel = document.querySelectorAll('#outputGoHere')[0];
+        for (var i=0; i<lines.length; i++) {
+          var newEntry = document.createElement('tr');
+          newEntry.innerHTML = '<td>'+lines[i].map(function(str) {
+            return str.replace(/ /g, '&nbsp;&nbsp;');
+          }).join('</td><td>') + '</td>';
+          panel.appendChild(newEntry);
+        }
+      });
+
+      function startTracer() {
+        socket.emit('startTracer');
+      }
+
+      function stopTracer() {
+        socket.emit('stopTracer');
+      }
+    </script>
+    <style type='text/css'>
+      body, tr, td {
+        margin: 0;
+        padding: 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      table td {
+        border-right: 1px solid #777;
+        border-bottom: 1px solid #777;
+      }
+      tr td {
+        padding: 2px 6px;
+      }
+      th {
+        border-right: 1px solid #333333;
+        border-bottom: 1px solid #333333;
+      }
+
+      #header {
+        background: gray;
+        height: 30px;
+        border-bottom: 1px solid #333333;
+      }
+
+      #overallStats {
+        background: coral;
+      }
+
+      #runningOutput {
+        background: lime;
+      }
+    </style>
+  </head>
+  <body>
+    <div id='header'>
+      <input type='button' onclick='startTracer()' value='Start' />
+      <input type='button' onclick='stopTracer()' value='Stop' />
+
+    </div>
+    <div id='overallStats'>
+      <table >
+        <tr>
+          <th>Min</th>
+          <th>Avg</th>
+          <th>Max</th>
+          <th>Count</th>
+          <th>Location</th>
+        </tr>
+        <tbody id='statsGoHere'></tbody>
+      </table>
+    </div>
+    <div id='runningOutput'>
+      <table >
+        <tr>
+          <th>Type</th>
+          <th>Time</th>
+          <th>Heap</th>
+          <th>Location</th>
+        </tr>
+        <tbody id='outputGoHere'></tbody>
+      </table>
+    </div>
+
+  </body>
+</html>
