@@ -1,134 +1,54 @@
+<!DOCTYPE html>
 <html>
   <head>
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-      var socket = io.connect('http://localhost:16006');
+    <title>HX Tracer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-      socket.on('overallStats', function (lines) {
-        var panel = document.querySelectorAll('#statsGoHere')[0];
-        panel.innerHTML = '';
-        lines.sort(function(a, b) {
-          return b[3] - a[3];
-        });
-        lines.forEach(function(line) {
-          var newEntry = document.createElement('tr');
-          newEntry.addEventListener('click', function() { requestDetailsFor(line[4]); });
-          newEntry.innerHTML = '<td>'+line.map(function(str) {
-            return str.replace(/ /g, '&nbsp;&nbsp;');
-          }).join('</td><td>') + '</td>';
-          panel.appendChild(newEntry);
-        });
-      });
-
-      socket.on('runningOutput', function (lines) {
-        var panel = document.querySelectorAll('#outputGoHere')[0];
-        for (var i=0; i<lines.length; i++) {
-          var newEntry = document.createElement('tr');
-          newEntry.innerHTML = '<td>'+lines[i].map(function(str) {
-            return str.replace(/ /g, '&nbsp;&nbsp;');
-          }).join('</td><td>') + '</td>';
-          panel.appendChild(newEntry);
-        }
-      });
-
-      socket.on('detailResponse', function(details) {
-        var panel = document.querySelectorAll('#overallStats > div')[1];
-        panel.innerHTML = '';
-        details.calledFrom.forEach(function(path) {
-          var newPath = document.createElement('div');
-          newPath.innerHTML = path;
-          panel.appendChild(newPath);
-        });
-        details.code.split('\n').forEach(function(line) {
-          var newLine = document.createElement('div');
-          newLine.innerHTML = '<pre><code>'+line+'</code></pre>';
-          panel.appendChild(newLine);
-        });
-      });
-
-      function requestDetailsFor(modulePath) {
-        socket.emit('detailRequest', modulePath);
-      }
-
-      function startTracer() {
-        socket.emit('startTracer');
-      }
-
-      function stopTracer() {
-        socket.emit('stopTracer');
-      }
-    </script>
-    <style type='text/css'>
-      body, tr, td {
-        margin: 0;
-        padding: 0;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-      table td {
-        border-right: 1px solid #777;
-        border-bottom: 1px solid #777;
-      }
-      tr td {
-        padding: 2px 6px;
-      }
-      th {
-        border-right: 1px solid #333333;
-        border-bottom: 1px solid #333333;
-      }
-
-      #header {
-        background: gray;
-        height: 30px;
-        border-bottom: 1px solid #333333;
-      }
-
-      #overallStats > div {
-        width: 50%;
-        float: left;
-        overflow: scroll;
-        height: 100%;
-      }
-
-    </style>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
   </head>
   <body>
-    <div id='header'>
-      <input type='button' onclick='startTracer()' value='Start' />
-      <input type='button' onclick='stopTracer()' value='Stop' />
-
-    </div>
-    <div id='overallStats'>
-      <div>
-        <table >
-          <tr>
-            <th>Min</th>
-            <th>Avg</th>
-            <th>Max</th>
-            <th>Count</th>
-            <th>Location</th>
-          </tr>
-          <tbody id='statsGoHere'></tbody>
-        </table>
+    <nav class="navbar navbar-default navbar-static-top" role="navigation">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="#">HX Tracer</a>
       </div>
-      <div >
 
-      </div>
-    </div>
-    <br />
-    <div id='runningOutput'>
-      <table >
+      <ul class="nav navbar-nav">
+        <li><a href="#" onclick="startTracer()">Start Profiler</a></li>
+        <li><a href="#" onclick="stopTracer()">Stop Profiler</a></li>
+      </ul>
+    </nav>
+
+    <table class="table table-hover table-condensed">
+      <thead>
         <tr>
-          <th>Type</th>
-          <th>Time</th>
-          <th>Heap</th>
+          <th>Min</th>
+          <th>Avg</th>
+          <th>Max</th>
+          <th>Count</th>
           <th>Location</th>
         </tr>
-        <tbody id='outputGoHere'></tbody>
-      </table>
+      </thead>
+      <tbody id="statsGoHere"></tbody>
+    </table>
+
+    <div class="container">
+      <div id="overallStats">
+      </div>
     </div>
 
+    <table class="table table-hover">
+      <thead>
+        <th>Type</th>
+        <th>Time</th>
+        <th>Heap</th>
+        <th>Location</th>
+      </thead>
+      <tbody id="outputGoHere"></tbody>
+    </table>
+
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/assets/js/main.js"></script>
   </body>
 </html>
