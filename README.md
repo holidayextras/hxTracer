@@ -134,7 +134,7 @@ TypeError: Converting circular structure to JSON
 ```
 This is both awesome and terrible at the same time - it means that any included module in a given project can obtain the references to every loaded module in the entire project. It also means that any module can alter the exports or behaviour of any other module in the project:
 ```javascript
-var async = require('async);
+var async = require('async');
 module.parent.children[0].exports.foo = 'bar';
 console.log(async.foo);
 ```
