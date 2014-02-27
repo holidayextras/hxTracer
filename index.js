@@ -27,7 +27,7 @@ var active = false;
 var moduleRef = (typeof module != 'undefined') ? module : null;
 var global = global || { };
 var parentModule = moduleRef || { };
-var processRef = (typeof process != 'undefined') ? process : { memoryUsage: function() { return { heapUsed: '' } } };
+var processRef = (typeof process != 'undefined') ? process : { memoryUsage: function() { return { heapUsed: '' }; } };
 while (parentModule.parent) parentModule = parentModule.parent;
 
 // tooBusy attempts to measure event loop lag
@@ -130,15 +130,17 @@ function infect(item, i, modulePath) {
         if (!(arg instanceof Function)) return arg;
         var index = '['+functionArgs.indexOf(arg)+']';
         // This covers functions passed in which are NOT the last argument
-        if (functionArgs.indexOf(arg) != (functionArgs.length-1)) return function() {
-          currentIndentation = indentationWhenInvoked;
-          console.error('TRACER CBI', meaningfulTime(), processRef.memoryUsage().heapUsed, spaces, modulePath+index);
-          var out = arg.apply(this, Array.prototype.slice.call(arguments));
-          if (!active) return;
-          console.error('TRACER CBR', meaningfulTime(), processRef.memoryUsage().heapUsed, spaces, modulePath+index);
-          stats[modulePath].calcs += 2;
-          return out;
-        };
+        if (functionArgs.indexOf(arg) != (functionArgs.length-1)) {
+          return function() {
+            currentIndentation = indentationWhenInvoked;
+            console.error('TRACER CBI', meaningfulTime(), processRef.memoryUsage().heapUsed, spaces, modulePath+index);
+            var out = arg.apply(this, Array.prototype.slice.call(arguments));
+            if (!active) return;
+            console.error('TRACER CBR', meaningfulTime(), processRef.memoryUsage().heapUsed, spaces, modulePath+index);
+            stats[modulePath].calcs += 2;
+            return out;
+          };
+        }
         // If it gets here, we're dealing with the final argument and it's a function (read: the callback)
         isAsync = true;
         return function() {
@@ -274,7 +276,7 @@ function startTracer() {
   if (!moduleRef) {
     for (var i in window) {
       if ([ 'top', 'document', 'window', 'worker', 'parent', 'frames', 'self', 'performance', 'navigator' ].indexOf(i) === -1) {
-        processModules({ exports: window[i], filename: i })
+        processModules({ exports: window[i], filename: i });
       }
     }
   } else {
@@ -316,7 +318,7 @@ if (moduleRef) {
     startTooBusy: startTooBusy,
     stopTooBusy: stopTooBusy,
     log: timeAndLog
-  }
+  };
 }
 
 })();

@@ -38,7 +38,7 @@ function Constructor(j, k, l) {
   module.exports.cons.super_.call(this, j, k, l);
   console.log("-- Base Class Instantiated", j, k, l);
   this.prop = 'Const'+j+''+k+''+l;
-};
+}
 util.inherits(Constructor, Parent);
 
 Constructor.staticProperty = 'foo';
@@ -67,7 +67,7 @@ Object.defineProperty(Constructor.prototype, 'protoGetterProperty', {
 function test(g, h, i) {
   console.log("-- Test function invoked", g, h, i);
   return "Test"+g+h+i;
-};
+}
 
 module.exports = {
   cons: Constructor,
