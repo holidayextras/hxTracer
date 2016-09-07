@@ -1,4 +1,4 @@
-## Introduction
+## hxTracer
 ---
 
 I wrote this javascript tracer to gain a better insight into how a project worked. Hopefully it'll help others too. Keep reading for an explanation on how it works.
